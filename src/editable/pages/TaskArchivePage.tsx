@@ -9,6 +9,7 @@ import { taskPageMetadata } from '@/config/site.content'
 import { taskPageVoices } from '@/editable/content/task-pages.content'
 import { EditableSiteShell } from '@/editable/shell/EditableSiteShell'
 import { getTaskTheme, taskThemeStyle } from '@/editable/theme/task-themes'
+import { Ads } from '@/lib/ads'
 
 export const revalidate = 3
 
@@ -45,7 +46,11 @@ const getField = (post: SitePost, keys: string[]) => {
   }
   return ''
 }
-const cleanDomain = (value: string) => value.replace(/^https?:\/\//, '').replace(/\/$/, '')
+const bareDomain = (post: SitePost) => {
+  const raw = getField(post, ['website', 'url', 'link'])
+  return raw.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '')
+}
+const faviconFor = (domain: string) => (domain ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64` : '')
 
 function pageHref(basePath: string, category: string, page: number) {
   const params = new URLSearchParams()
@@ -93,56 +98,88 @@ export function TaskArchiveView({ task, posts, pagination, category, basePath }:
   const label = taskConfig?.label || task
   const categoryLabel = category === 'all' ? 'All categories' : CATEGORY_OPTIONS.find((item) => item.slug === category)?.name || category
 
+  const showFeatured = task === 'sbm' && page === 1 && category === 'all' && posts.length > 4
+  const featuredPost = showFeatured ? posts[0] : null
+  const gridPosts = showFeatured ? posts.slice(1) : posts
+
   return (
     <EditableSiteShell>
       <main style={taskThemeStyle(task)} className="min-h-screen bg-[var(--tk-bg)] text-[var(--tk-text)]">
-        <header className="relative overflow-hidden border-b border-[var(--tk-line)]">
-          <div className="pointer-events-none absolute inset-x-0 -top-40 h-96 bg-[radial-gradient(60%_60%_at_50%_0%,var(--tk-glow),transparent_70%)]" />
-          <div className="relative mx-auto max-w-[var(--editable-container)] px-6 py-20 sm:py-28 lg:px-8">
-            <div className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.34em] text-[var(--tk-accent)]">
-              <span>{theme.kicker}</span>
-              <span className="h-1 w-1 rounded-full bg-[var(--tk-accent)] opacity-50" />
-              <span className="text-[var(--tk-muted)]">{label}</span>
-            </div>
-            <h1 className="editable-display mt-6 max-w-3xl text-balance text-[2.5rem] font-semibold leading-[1.06] tracking-[-0.03em] sm:text-5xl lg:text-6xl">
-              {voice?.headline || `Browse ${label}`}
-            </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--tk-muted)]">{voice?.description || theme.note}</p>
-            {voice?.chips?.length ? (
-              <div className="mt-8 flex flex-wrap gap-2.5">
-                {voice.chips.map((chip) => (
-                  <span key={chip} className="rounded-full border border-[var(--tk-line)] bg-[var(--tk-surface)] px-3.5 py-1.5 text-xs font-medium text-[var(--tk-muted)]">{chip}</span>
-                ))}
+        <header className="px-3 pt-4 sm:px-5 sm:pt-6">
+          <div className="relative mx-auto w-full max-w-[var(--editable-container)] overflow-hidden rounded-[2rem] bg-[var(--slot4-ink)] px-6 py-14 text-[var(--slot4-on-ink)] sm:rounded-[2.5rem] sm:px-10 sm:py-20 lg:px-14">
+            <div className="pointer-events-none absolute -right-28 -top-28 h-80 w-80 rounded-full bg-[var(--slot4-lime)]/20 blur-[120px]" />
+            <div className="relative">
+              <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--slot4-lime)]">
+                <span>{theme.kicker}</span>
+                <span className="h-1 w-1 rounded-full bg-[var(--slot4-lime)] opacity-60" />
+                <span className="text-[var(--slot4-on-ink-muted)]">{label}</span>
               </div>
-            ) : null}
+              <h1 className="editable-display mt-6 max-w-3xl text-balance text-[2.5rem] font-extrabold uppercase leading-[0.92] tracking-[-0.03em] sm:text-5xl lg:text-6xl">
+                {voice?.headline || `Browse ${label}`}
+              </h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--slot4-on-ink-muted)] sm:text-lg">{voice?.description || theme.note}</p>
 
-            <div className="mt-12 flex flex-col gap-4 border-t border-[var(--tk-line)] pt-6 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-[var(--tk-muted)]">
-                <span className="font-semibold text-[var(--tk-text)]">{posts.length}</span> {posts.length === 1 ? 'post' : 'posts'} · {categoryLabel}
-              </p>
-              <form action={basePath} className="flex items-center gap-2.5">
-                <div className="relative">
-                  <select
-                    name="category"
-                    defaultValue={category}
-                    className="h-11 appearance-none rounded-full border border-[var(--tk-line)] bg-[var(--tk-surface)] pl-4 pr-10 text-sm font-medium text-[var(--tk-text)] outline-none transition focus:border-[var(--tk-accent)]"
-                    aria-label={voice?.filterLabel || 'Filter category'}
-                  >
-                    <option value="all">All categories</option>
-                    {CATEGORY_OPTIONS.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--tk-muted)]" />
-                </div>
-                <button className="inline-flex h-11 items-center rounded-full bg-[var(--tk-accent)] px-5 text-sm font-semibold text-[var(--tk-on-accent)] transition hover:opacity-90">Apply</button>
+              <form action="/search" className="mt-8 flex w-full max-w-xl items-center gap-2 rounded-full bg-white p-1.5 pl-5 shadow-[0_18px_50px_rgba(0,0,0,0.25)]">
+                <Search className="h-5 w-5 shrink-0 text-[var(--slot4-muted-text)]" />
+                <input type="hidden" name="task" value={task} />
+                <input
+                  name="q"
+                  placeholder={`Search ${label.toLowerCase()}…`}
+                  className="min-w-0 flex-1 bg-transparent py-2.5 text-sm text-[var(--slot4-page-text)] outline-none placeholder:text-[var(--slot4-muted-text)]"
+                />
+                <button className="shrink-0 rounded-full bg-[var(--slot4-lime)] px-6 py-2.5 text-sm font-bold text-[var(--slot4-on-lime)] transition hover:brightness-95">Search</button>
               </form>
+
+              {voice?.chips?.length ? (
+                <div className="mt-6 flex flex-wrap gap-2.5">
+                  {voice.chips.map((chip) => (
+                    <span key={chip} className="rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-medium text-white/85">{chip}</span>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
         </header>
 
-        <section className="mx-auto max-w-[var(--editable-container)] px-6 py-16 sm:py-20 lg:px-8">
+        <section className="mx-auto max-w-[var(--editable-container)] px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+          <div className="flex flex-col gap-4 border-b border-[var(--tk-line)] pb-6 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-[var(--tk-muted)]">
+              <span className="font-semibold text-[var(--tk-text)]">{posts.length}</span> {posts.length === 1 ? 'result' : 'results'} · {categoryLabel}
+            </p>
+            <form action={basePath} className="flex items-center gap-2.5">
+              <div className="relative">
+                <select
+                  name="category"
+                  defaultValue={category}
+                  className="h-11 appearance-none rounded-full border border-[var(--tk-line)] bg-[var(--tk-surface)] pl-4 pr-10 text-sm font-medium text-[var(--tk-text)] outline-none transition focus:border-[var(--tk-accent)]"
+                  aria-label={voice?.filterLabel || 'Filter category'}
+                >
+                  <option value="all">All categories</option>
+                  {CATEGORY_OPTIONS.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--tk-muted)]" />
+              </div>
+              <button className="inline-flex h-11 items-center rounded-full bg-[var(--tk-accent)] px-5 text-sm font-semibold text-[var(--tk-on-accent)] transition hover:opacity-90">Apply</button>
+            </form>
+
+
+            {posts.length ? (
+              <div className="pt-12">
+                <Ads slot="header" showLabel className="mx-auto w-full" />
+              </div>
+            ) : null}
+          </div>
+
+          {featuredPost ? (
+            <div className="pt-8">
+              <FeaturedBookmark post={featuredPost} href={`${basePath}/${featuredPost.slug}`} />
+            </div>
+          ) : null}
+
+          <div className="pt-8">
           {posts.length ? (
             <div className={taskGrid[task]}>
-              {posts.map((post, index) => <ArchivePostCard key={post.id || post.slug} post={post} task={task} basePath={basePath} index={index} />)}
+              {gridPosts.map((post, index) => <ArchivePostCard key={post.id || post.slug} post={post} task={task} basePath={basePath} index={index} />)}
             </div>
           ) : (
             <div className="mx-auto max-w-xl rounded-[var(--tk-radius)] border border-dashed border-[var(--tk-line)] bg-[var(--tk-surface)] px-8 py-16 text-center">
@@ -151,6 +188,9 @@ export function TaskArchiveView({ task, posts, pagination, category, basePath }:
               <p className="mt-2 text-sm leading-6 text-[var(--tk-muted)]">Try another category, or check back after new {label.toLowerCase()} are published.</p>
             </div>
           )}
+          </div>
+
+
 
           {posts.length ? (
             <nav className="mt-16 flex items-center justify-center gap-3 text-sm">
@@ -303,20 +343,70 @@ function ImageArchiveCard({ post, href, index }: { post: SitePost; href: string;
   )
 }
 
-function BookmarkArchiveCard({ post, href, index }: { post: SitePost; href: string; index: number }) {
-  const website = getField(post, ['website', 'url', 'link'])
+function BookmarkArchiveCard({ post, href }: { post: SitePost; href: string; index: number }) {
+  const domain = bareDomain(post)
+  const favicon = faviconFor(domain)
+  const category = getCategory(post, 'Resource')
   return (
-    <Link href={href} className={`${cardBase} flex gap-4 p-6`}>
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--tk-accent-soft)] text-[var(--tk-accent)]">
-        <Globe className="h-5 w-5" />
+    <Link href={href} className={`${cardBase} flex h-full flex-col p-6`}>
+      <div className="flex items-start gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--tk-line)] bg-[var(--tk-surface)]">
+          {favicon ? <img src={favicon} alt="" className="h-5 w-5 object-contain" loading="lazy" /> : <Globe className="h-5 w-5 text-[var(--tk-accent)]" />}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold uppercase tracking-[0.12em] text-[var(--tk-accent)]">{domain || 'Saved resource'}</p>
+          <span className="mt-1 inline-block rounded-full bg-[var(--tk-raised)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--tk-muted)]">{category}</span>
+        </div>
+        <ArrowUpRight className="h-4 w-4 shrink-0 text-[var(--tk-muted)] transition group-hover:text-[var(--tk-accent)]" />
       </div>
-      <div className="min-w-0 flex-1">
-        <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-[var(--tk-muted)]">Saved · {String(index + 1).padStart(2, '0')}</span>
-        <h2 className="editable-display mt-1.5 text-lg font-semibold leading-snug tracking-[-0.02em]">{post.title}</h2>
-        <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--tk-muted)]">{getSummary(post)}</p>
-        {website ? <p className="mt-3 truncate text-xs font-medium text-[var(--tk-accent)]">{cleanDomain(website)}</p> : null}
+      <h2 className="editable-display mt-4 line-clamp-2 text-lg font-bold leading-snug tracking-[-0.02em]">{post.title}</h2>
+      <p className="mt-2 line-clamp-3 flex-1 text-sm leading-6 text-[var(--tk-muted)]">{getSummary(post)}</p>
+      <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--tk-accent)]">
+        Open resource <ArrowUpRight className="h-4 w-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+      </span>
+    </Link>
+  )
+}
+
+function FeaturedBookmark({ post, href }: { post: SitePost; href: string }) {
+  const domain = bareDomain(post)
+  const favicon = faviconFor(domain)
+  const image = getImage(post)
+  const category = getCategory(post, 'Resource')
+  return (
+    <Link
+      href={href}
+      className="group grid overflow-hidden rounded-[1.75rem] border border-[var(--tk-line)] bg-[var(--tk-surface)] shadow-[0_18px_50px_rgba(11,26,77,0.08)] transition duration-500 hover:-translate-y-1 hover:shadow-[0_32px_70px_rgba(11,26,77,0.14)] lg:grid-cols-[1.05fr_1fr]"
+    >
+      <div className="relative aspect-[16/10] overflow-hidden bg-[var(--tk-raised)] lg:aspect-auto">
+        {image && image !== placeholder ? (
+          <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105" />
+        ) : (
+          <div className="flex h-full min-h-56 items-center justify-center"><Globe className="h-14 w-14 text-[var(--tk-muted)]" /></div>
+        )}
+        <span className="absolute left-5 top-5 inline-flex items-center gap-1.5 rounded-full bg-[var(--tk-accent)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white">Featured</span>
+      </div>
+      <div className="flex flex-col justify-center p-7 sm:p-10">
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--tk-line)] bg-[var(--tk-surface)]">
+            {favicon ? <img src={favicon} alt="" className="h-5 w-5 object-contain" /> : <Globe className="h-5 w-5 text-[var(--tk-accent)]" />}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-xs font-semibold uppercase tracking-[0.14em] text-[var(--tk-accent)]">{domain || 'Saved resource'}</p>
+            <p className="text-xs font-medium text-[var(--tk-muted)]">{category}</p>
+          </div>
+        </div>
+        <h2 className="editable-display mt-5 text-2xl font-bold leading-tight tracking-[-0.02em] sm:text-3xl">{post.title}</h2>
+        <p className="mt-4 line-clamp-3 text-[15px] leading-7 text-[var(--tk-muted)]">{getSummary(post)}</p>
+        <span className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-[var(--tk-accent)] px-5 py-2.5 text-sm font-bold text-white transition group-hover:brightness-95">
+          Open resource <ArrowUpRight className="h-4 w-4" />
+        </span>
+
+
+        
       </div>
     </Link>
+    
   )
 }
 

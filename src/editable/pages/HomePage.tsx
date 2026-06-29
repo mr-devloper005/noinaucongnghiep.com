@@ -29,7 +29,11 @@ function uniquePosts(posts: SitePost[]) {
 }
 
 export default async function HomePage() {
-  const primaryTask = (SITE_CONFIG.tasks.find((task) => task.enabled)?.key || 'article') as TaskKey
+  // Public discovery centers on bookmarks/collections. Prefer the SBM feed and
+  // never surface the profile task (kept functional, but hidden from the UI).
+  const primaryTask = ((SITE_CONFIG.tasks.find((task) => task.enabled && task.key === 'sbm')?.key ||
+    SITE_CONFIG.tasks.find((task) => task.enabled && task.key !== 'profile')?.key ||
+    'sbm') as TaskKey)
   const primaryRoute = SITE_CONFIG.taskViews[primaryTask] || `/${primaryTask}`
   const taskFeed: TaskFeedItem[] = await fetchHomeTaskFeed(12, { timeoutMs: 2500 })
   const primaryPosts = uniquePosts(taskFeed.find(({ task }) => task.key === primaryTask)?.posts || taskFeed.flatMap(({ posts }) => posts)).slice(0, 24)
@@ -53,17 +57,19 @@ export default async function HomePage() {
         }}
       />
       <EditableHomeHero primaryTask={primaryTask} primaryRoute={primaryRoute} posts={primaryPosts} timeSections={timeSections} />
-      <div className="mx-auto max-w-6xl px-4 py-6">
-  <Ads slot="header" showLabel eager className="mx-auto w-full" />
-</div>
 
       <EditableStoryRail primaryTask={primaryTask} primaryRoute={primaryRoute} posts={primaryPosts} timeSections={timeSections} />
+
+      <div className="mx-auto w-full max-w-[var(--editable-container)] px-4 pb-2 sm:px-6 lg:px-8">
+        <Ads slot="" showLabel eager className="mx-auto w-full" />
+      </div>
+
       <EditableMagazineSplit primaryTask={primaryTask} primaryRoute={primaryRoute} posts={primaryPosts} timeSections={timeSections} />
 
       <EditableTimeCollections primaryTask={primaryTask} primaryRoute={primaryRoute} posts={primaryPosts} timeSections={timeSections} />
-      <div className="mx-auto max-w-6xl px-4 py-6">
-  <Ads slot="sidebar" showLabel eager className="mx-auto w-full" />
-</div>
+      <div className="mx-auto w-full max-w-[var(--editable-container)] px-4 py-6 sm:px-6 lg:px-8">
+        <Ads slot="in-feed" showLabel eager className="mx-auto w-full" />
+      </div>
       <EditableHomeCta />
       </main>
     </EditableSiteShell>
