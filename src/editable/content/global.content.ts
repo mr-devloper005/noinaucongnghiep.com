@@ -3,45 +3,48 @@ import { slot4BrandConfig } from '@/editable/theme/brand.config'
 export const globalContent = {
   site: {
     name: slot4BrandConfig.siteName,
-    tagline: slot4BrandConfig.tagline || 'Independent reading platform',
+    tagline: slot4BrandConfig.tagline || 'Curated bookmarks & collections',
     domain: slot4BrandConfig.domain,
     baseUrl: slot4BrandConfig.baseUrl,
   },
   nav: {
-    tagline: 'Independent reading platform',
+    tagline: 'Curated bookmarks & collections',
     primaryLinks: [
-      { label: 'Articles', href: '/articles' },
-      { label: 'Visuals', href: '/image-sharing' },
-      { label: 'Listings', href: '/listings' },
+      { label: 'Bookmarks', href: '/sbm' },
+      { label: 'Search', href: '/search' },
+      { label: 'About', href: '/about' },
       { label: 'Contact', href: '/contact' },
     ],
     actions: {
-      primary: { label: 'Start exploring', href: '/' },
-      secondary: { label: 'Submit', href: '/contact' },
+      primary: { label: 'Browse bookmarks', href: '/sbm' },
+      secondary: { label: 'Contact', href: '/contact' },
     },
   },
   footer: {
-    tagline: 'Stories, resources, and discoverable posts',
-    description: 'A connected publishing surface for articles, visuals, listings, profiles, bookmarks, and downloadable resources.',
+    tagline: 'Save it. Curate it. Discover it.',
+    description:
+      'A calmer home for the links worth keeping — curated bookmarks, themed collections, and reference resources, all in one place to save and rediscover.',
+    newsletterTitle: 'Get the weekly curation',
+    newsletterCopy: 'A short digest of the best new resources, tools, and collections — straight to your inbox.',
     columns: [
       {
-        title: 'Explore',
+        title: 'Discover',
         links: [
-          { label: 'Articles', href: '/articles' },
-          { label: 'Listings', href: '/listings' },
-          { label: 'Images', href: '/image-sharing' },
-          { label: 'PDF Library', href: '/pdf' },
+          { label: 'All bookmarks', href: '/sbm' },
+          { label: 'Search resources', href: '/search' },
+          { label: 'Save a link', href: '/create' },
         ],
       },
       {
-        title: 'Site',
+        title: 'Platform',
         links: [
           { label: 'About', href: '/about' },
           { label: 'Contact', href: '/contact' },
+          { label: 'Sign in', href: '/login' },
         ],
       },
     ],
-    bottomNote: 'Built for clean discovery and connected publishing.',
+    bottomNote: 'Built for clean discovery and connected curation.',
   },
   commonLabels: {
     readMore: 'Read more',
@@ -49,6 +52,6 @@ export const globalContent = {
     explore: 'Explore',
     latest: 'Latest',
     related: 'Related',
-    published: 'Published',
+    published: 'Saved',
   },
 } as const
